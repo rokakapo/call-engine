@@ -1,0 +1,74 @@
+{
+  "filter": "Audio",
+  "duration_requested_s": 3.0,
+  "wall_time_s": 28.084,
+  "samplerate": 16000,
+  "render_endpoints": [
+    "Digital Audio (S/PDIF) (High Definition Audio Device)",
+    "Digital Audio (S/PDIF) (High Definition Audio Device)",
+    "Speakers (WJK USB Audio)",
+    "Speakers (High Definition Audio Device)"
+  ],
+  "capture_endpoints": [
+    "Microphone (WJK USB Audio)"
+  ],
+  "streams": [
+    {
+      "label": "incoming(loopback):Digital Audio (S/PDIF) (High Definition Audio Device)",
+      "device_name": "Digital Audio (S/PDIF) (High Definition Audio Device)",
+      "device_id": "{0.0.0.00000000}.{51d5522e-3ec5-4a37-a0fd-950f23aa2966}",
+      "ok": true,
+      "error": null,
+      "duration_s": 10.063,
+      "frames": 0,
+      "samplerate": 16000,
+      "rms": 0.0,
+      "peak": 0.0,
+      "active_frame_ratio": 0.0,
+      "clipping": 0
+    },
+    {
+      "label": "incoming(loopback):Digital Audio (S/PDIF) (High Definition Audio Device)",
+      "device_name": "Digital Audio (S/PDIF) (High Definition Audio Device)",
+      "device_id": "{0.0.0.00000000}.{5a3e0760-5e05-4405-ac7c-27b5c0f23f9e}",
+      "ok": true,
+      "error": null,
+      "duration_s": 10.08,
+      "frames": 0,
+      "samplerate": 16000,
+      "rms": 0.0,
+      "peak": 0.0,
+      "active_frame_ratio": 0.0,
+      "clipping": 0
+    },
+    {
+      "label": "incoming(loopback):Speakers (High Definition Audio Device)",
+      "device_name": "Speakers (High Definition Audio Device)",
+      "device_id": "{0.0.0.00000000}.{a6e78329-c836-4f4d-b799-f815cfbc6040}",
+      "ok": true,
+      "error": null,
+      "duration_s": 10.096,
+      "frames": 0,
+      "samplerate": 16000,
+      "rms": 0.0,
+      "peak": 0.0,
+      "active_frame_ratio": 0.0,
+      "clipping": 0
+    },
+    {
+      "label": "incoming(loopback):Speakers (WJK USB Audio)",
+      "device_name": "Speakers (WJK USB Audio)",
+      "device_id": "{0.0.0.00000000}.{63275d2d-f436-4142-9060-0bc3fb0be9d8}",
+      "ok": true,
+      "error": null,
+      "duration_s": 15.07,
+      "frames": 0,
+      "samplerate": 16000,
+      "rms": 0.0,
+      "peak": 0.0,
+      "active_frame_ratio": 0.0,
+      "clipping": 0
+    }
+  ],
+  "verdict": "PARTIAL: streams opened and captured data, but no voice activity detected on at least one side. Keep a real call active and have both parties speak, then rerun."
+}

@@ -1,0 +1,4 @@
+pywebview>=5.3
+requests>=2.32
+sounddevice>=0.5
+webrtcvad-wheels>=2.0.14

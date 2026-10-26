@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="utf-8"><title>Call Engine</title>
+  <style>
+    *{box-sizing:border-box}body{margin:0;background:#10131a;color:#e8ecf3;font:14px Segoe UI,sans-serif}.top,.tabs{padding:15px 24px;background:#1a2030}.tabs button{width:auto;margin-left:8px}.page{display:none;padding:16px;gap:14px;height:calc(100vh - 110px)}.active{display:grid}.connection{grid-template-columns:1fr 1fr}.calls{grid-template-columns:290px 1fr 340px}.panel{background:#1a2030;border:1px solid #2a344b;border-radius:10px;padding:16px;overflow:auto}input,select,textarea,button{width:100%;margin:6px 0;padding:10px;border-radius:6px;border:1px solid #364461;background:#101722;color:#fff}button{background:#3978e8;border:0;cursor:pointer;font-weight:600}.warn{background:#b94c5b}.row{display:flex;gap:8px}.row button{flex:1}.card{padding:10px;margin:8px 0;background:#111827;border-right:3px solid #3978e8;border-radius:5px}.muted{color:#9aa8c1}.ok{color:#9ee2b1}.danger{color:#ffa3ad}.msg{padding:10px;border-radius:7px;margin:8px 0}.caller{background:#20375c}.agent{background:#293b32}
+  </style>
+</head>
+<body>
+  <header class="top"><h2>Call Engine — Bluetooth HFP</h2></header>
+  <nav class="tabs"><button onclick="tab('connection')">التوصيل والاختبار</button><button onclick="tab('calls')">المكالمات والذكاء</button></nav>
+  <main id="connection" class="page connection active">
+    <section class="panel">
+      <h2>اتصال الهاتف عبر USB / ADB</h2><button onclick="adbStatus()">تحديث حالة ADB</button><div id="adb" class="card muted">لم يتم الفحص.</div>
+      <h2>Bluetooth</h2><button onclick="devices()">تحديث أجهزة Bluetooth</button><div id="devices" class="card muted">لم يتم الفحص.</div>
+    </section>
+    <section class="panel">
+      <h2>Bluetooth HFP Direct</h2><p class="muted">اختر الهاتف ثم جهّز الاختبار. يبدأ الالتقاط تلقائيًا مرة واحدة فقط عند وصول المكالمة إلى active.</p><select id="hfp"></select><button onclick="armHfp()">تجهيز HFP وانتظار مكالمة نشطة</button><button class="warn" onclick="stopHfp()">إلغاء / إيقاف HFP</button><div id="hfp-status" class="card muted">لم يتم تجهيز اختبار HFP.</div>
+      <h2>Android Audio Capture (بديل HFP)</h2><p class="muted">يلتقط الصوت على الهاتف ويبث PCM (16kHz mono) إلى PC. تجنّب HFP على Windows (مرفوض). جهّز ثم انتظر مكالمة نشطة.</p><button onclick="armAndroid()">تجهيز Android وانتظار مكالمة نشطة</button><button onclick="startAndroid()">بدء Android capture الآن</button><button class="warn" onclick="stopHfp()">إيقاف</button><div id="android-status" class="card muted">لم يتم تجهيز Android capture.</div><h2>Runtime Health</h2><button onclick="runtimeHealth()">تحديث حالة التشغيل</button><div id="runtime" class="card muted">لم يتم الفحص.</div><div id="events" class="card muted">لا توجد أحداث حتى الآن.</div>
+    </section>
+  </main>
+  <main id="calls" class="page calls">
+    <section class="panel"><h2>Call Controller</h2><input id="number" placeholder="رقم الهاتف"><button onclick="dial()">اتصال عبر ADB</button><button onclick="answer()">رد</button><button class="warn" onclick="hangup()">إنهاء المكالمة</button><div id="call" class="card muted">لا توجد مكالمة.</div></section>
+    <section class="panel"><h2>نص المحادثة</h2><div id="chat"><div class="msg agent">سيظهر STT هنا بعد نجاح التقاط HFP.</div></div><textarea id="transcript" rows="4"></textarea><button onclick="reply()">LLM → TTS</button></section>
+    <section class="panel"><h2>AI Provider</h2><input id="base" value="https://api.openai.com/v1/"><input id="key" type="password" placeholder="API key"><textarea id="role">You are a concise phone assistant.</textarea><select id="model"><option value="">اختر Model</option></select><button onclick="saveAI()">حفظ للجلسة</button><button onclick="models()">Fetch Models</button><button onclick="testAI()">Test</button><div id="provider" class="card muted"></div></section>
+  </main>
+  <script>
+    const $=id=>document.getElementById(id),api=()=>window.pywebview.api,safe=v=>String(v??'').replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));
+    function tab(id){document.querySelectorAll('.page').forEach(x=>x.classList.remove('active'));$(id).classList.add('active')}
+    function hfpStatus(s){$('hfp-status').innerHTML=`<b>${s.monitoring?'monitoring':'stopped'}</b><br>Input: ${safe(s.capture_source)}<br>Output: ${safe(s.output_sink)}<br>Frames: ${s.total_frames} | Speech: ${s.speech_frames}<br>Level: ${Number(s.rms||0).toFixed(5)}`}
+    async function hfpDevices(){let r=await api().hfp_endpoints();$('hfp').innerHTML=r.map(x=>`<option value="${safe(x.name)}">${safe(x.name)} — ${safe(x.sample_rate)} Hz</option>`).join('')||'<option value="">لا يوجد HFP endpoint</option>'}
+    async function armHfp(){let r=await api().arm_hfp_monitor($('hfp').value);if(!r.ok)return alert(r.message);$('hfp-status').textContent='HFP armed: waiting up to 60 seconds for an active call.';runtimeHealth()}
+    async function stopHfp(){let r=await api().stop_hfp_monitor();hfpStatus(r.audio);runtimeHealth()}
+function androidStatus(s){if(!s||!s.stream)return;$('android-status').innerHTML=`<b>${s.stream.running?'running':'stopped'}</b><br>Frames: ${s.total_frames} | Speech: ${s.speech_frames}<br>RMS: ${Number(s.rms||0).toFixed(5)}<br>Connected: ${safe(s.stream.connected)}`}
+async function armAndroid(){let r=await api().arm_android_monitor();if(!r.ok)return alert(r.message);$('android-status').textContent='Android armed: waiting up to 60s for an active call.';runtimeHealth()}
+async function startAndroid(){let r=await api().start_android_monitor();if(!r.ok)return alert(r.message);androidStatus(r.runtime.android||r.runtime);runtimeHealth()}
+    async function adbStatus(){let r=await api().test_adb_connection();$('adb').innerHTML=`<b class="${r.ok?'ok':'danger'}">${safe(r.message)}</b>`}
+    async function devices(){let r=await api().get_devices();$('devices').innerHTML=r.bluetooth.map(x=>`<b>${safe(x.name)}</b><br>${safe(x.profiles.join(' · '))}`).join('<hr>')||'لا يوجد هاتف Bluetooth'}
+    async function runtimeHealth(){let r=await api().get_runtime_health(),t=r.telephony,h=r.hfp,failed=r.runtime.media_state==='failed';$('runtime').innerHTML=`<b class="${t.connected?'ok':'danger'}">ADB telephony: ${safe(t.state)}</b><br>Media: ${safe(r.runtime.media_transport)} / ${safe(r.runtime.media_state)}<br>HFP pairs: ${h.pairs.length}<br>HFP probe: ${safe(h.direct_capture_probe)}${r.runtime.failure?`<br><b class="danger">HFP failure: ${safe(r.runtime.failure)}</b>`:''}<br><span class="muted">${safe(h.note)}</span>`;if(failed)$('hfp-status').innerHTML=`<b class="danger">تم اكتشاف المكالمة، لكن Windows رفض فتح HFP audio stream.</b><br><span class="muted">${safe(r.runtime.failure)}</span>`;if(r.android)androidStatus(r.android);
+$('events').innerHTML=(r.events||[]).slice(0,8).map(e=>`<b>${safe(e.kind)}</b>: ${safe(e.detail)}<br><span class="muted">${safe(e.at)}</span>`).join('<hr>')||'لا توجد أحداث حتى الآن.';renderCall(t)}
+    function renderCall(r){$('call').innerHTML=`<b>${safe(r.state||'unknown')}</b><br>${safe(r.message||r.last_error||'')}`}
+    async function dial(){let r=await api().dial($('number').value);renderCall(r.call||r)}async function answer(){let r=await api().answer();renderCall(r.call||r)}async function hangup(){let r=await api().hangup();renderCall(r.call||r)}
+    async function saveAI(){let r=await api().save_provider({base_url:$('base').value,api_key:$('key').value,role:$('role').value,model:$('model').value});$('provider').textContent=r.ok?'Saved.':r.message}async function models(){let r=await api().fetch_models();$('provider').textContent=r.ok?`${r.models.length} models.`:r.message;if(r.ok)$('model').innerHTML=r.models.map(x=>`<option>${safe(x)}</option>`).join('')}async function testAI(){let r=await api().test_provider();$('provider').textContent=r.ok?'Connected.':r.message}async function reply(){let t=$('transcript').value.trim();if(!t)return;$('chat').innerHTML+=`<div class="msg caller">${safe(t)}</div>`;let r=await api().process_transcript(t);$('chat').innerHTML+=`<div class="msg agent">${safe(r.ok?r.reply:r.message)}</div>`}
+    window.addEventListener('pywebviewready',async()=>{await Promise.all([hfpDevices(),adbStatus(),devices(),runtimeHealth()]);let tick=0;setInterval(async()=>{if(++tick%2===0)runtimeHealth();let s=await api().get_audio_status();if(s.monitoring)hfpStatus(s);let a=await api().get_android_status();if(a&&a.stream)androidStatus(a)},1000)});
+  </script>
+</body>
+</html>
